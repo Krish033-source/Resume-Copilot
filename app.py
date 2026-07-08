@@ -3,11 +3,6 @@ Resume Copilot — AI Career Assistant Platform
 Single-file Flask backend: auth, resume parsing, ATS scoring, skill-gap analysis,
 job matching, cover letter / cold email generation, application tracking,
 interview prep, and career roadmaps.
-
-Run:
-    pip install -r requirements.txt
-    python app.py
-Then open http://localhost:5000
 """
 
 import os
@@ -23,12 +18,9 @@ from flask import Flask, request, jsonify, g, send_from_directory
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
-# Optional: python-docx / pdfplumber for parsing uploaded resumes
 import pdfplumber
 import docx
 
-# Optional AI enhancement (Groq). If no key is set, we fall back to solid
-# rule-based generation everywhere, so the app is 100% functional either way.
 try:
     from dotenv import load_dotenv
     load_dotenv()
