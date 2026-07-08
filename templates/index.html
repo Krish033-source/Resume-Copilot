@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Resume Copilot — Your AI Career Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<!-- ===================== AUTH SCREEN ===================== -->
+<div id="auth-screen" class="auth-wrap">
+  <div class="auth-panel">
+    <div class="auth-brand">
+      <div class="seal">RC</div>
+      <h1>Resume Copilot</h1>
+      <p class="tagline">One platform. One resume. Infinite career opportunities.</p>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="tab-btn active" data-tab="login">Log in</button>
+      <button class="tab-btn" data-tab="register">Create account</button>
+    </div>
+
+    <form id="login-form" class="auth-form">
+      <label>Email<input type="email" id="login-email" required /></label>
+      <label>Password<input type="password" id="login-password" required /></label>
+      <p class="form-error" id="login-error"></p>
+      <button type="submit" class="btn-primary">Log in</button>
+    </form>
+
+    <form id="register-form" class="auth-form hidden">
+      <label>Full name<input type="text" id="reg-name" required /></label>
+      <label>Email<input type="email" id="reg-email" required /></label>
+      <label>Password<input type="password" id="reg-password" required minlength="6" /></label>
+      <div class="grid-2">
+        <label>Phone<input type="text" id="reg-phone" /></label>
+        <label>Graduation year<input type="text" id="reg-gradyear" /></label>
+      </div>
+      <div class="grid-2">
+        <label>College<input type="text" id="reg-college" /></label>
+        <label>Degree<input type="text" id="reg-degree" /></label>
+      </div>
+      <p class="form-error" id="register-error"></p>
+      <button type="submit" class="btn-primary">Create account</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== APP SHELL ===================== -->
+<div id="app-shell" class="app-shell hidden">
+  <aside class="sidebar">
+    <div class="brand-mini"><span class="seal small">RC</span> Resume Copilot</div>
+    <nav>
+      <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+      <button class="nav-btn" data-view="resume">Resume &amp; ATS</button>
+      <button class="nav-btn" data-view="skillgap">Skill Gap &amp; Roadmap</button>
+      <button class="nav-btn" data-view="jobs">Job Matches</button>
+      <button class="nav-btn" data-view="outreach">Cover Letter &amp; Email</button>
+      <button class="nav-btn" data-view="tracker">Application Tracker</button>
+      <button class="nav-btn" data-view="interview">Interview Prep</button>
+      <button class="nav-btn" data-view="profile">Profile &amp; Settings</button>
+    </nav>
+    <button id="logout-btn" class="nav-btn logout">Log out</button>
+  </aside>
+
+  <main class="main-panel">
+
+    <!-- DASHBOARD -->
+    <section id="view-dashboard" class="view active">
+      <header class="view-header">
+        <h2>Welcome back, <span id="dash-name">there</span> 👋</h2>
+        <p class="muted">Here's where your career stands today.</p>
+      </header>
+
+      <div class="stamp-row">
+        <div class="stamp-card">
+          <div class="stamp" id="dash-ats-stamp">--</div>
+          <div class="stamp-label">Average ATS Score</div>
+        </div>
+        <div class="stat-cards">
+          <div class="stat-card"><div class="stat-num" id="dash-apps">0</div><div class="stat-label">Applications</div></div>
+          <div class="stat-card"><div class="stat-num" id="dash-saved">0</div><div class="stat-label">Saved Jobs</div></div>
+          <div class="stat-card"><div class="stat-num" id="dash-latest-ats">--</div><div class="stat-label">Latest Resume Score</div></div>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <div class="card">
+          <h3>Application Pipeline</h3>
+          <div id="dash-pipeline" class="pipeline"></div>
+        </div>
+        <div class="card">
+          <h3>Top Skills</h3>
+          <div id="dash-top-skills" class="chip-row muted-text">Upload a resume to see this.</div>
+        </div>
+        <div class="card">
+          <h3>Missing Skills</h3>
+          <div id="dash-missing-skills" class="chip-row missing muted-text">Upload a resume to see this.</div>
+        </div>
+        <div class="card">
+          <h3>AI Suggestions</h3>
+          <ul id="dash-suggestions" class="suggestion-list muted-text">Upload a resume to get suggestions.</ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESUME & ATS -->
+    <section id="view-resume" class="view">
+      <header class="view-header">
+        <h2>Resume &amp; ATS Analysis</h2>
+        <p class="muted">Upload your resume (PDF or DOCX) to get an instant, detailed breakdown.</p>
+      </header>
+
+      <div class="card upload-card">
+        <input type="file" id="resume-file" accept=".pdf,.docx" />
+        <button id="upload-btn" class="btn-primary">Analyze Resume</button>
+        <span id="upload-status" class="muted"></span>
+      </div>
+
+      <div id="resume-results" class="hidden">
+        <div class="stamp-row">
+          <div class="stamp-card">
+            <div class="stamp" id="result-ats">--</div>
+            <div class="stamp-label">ATS Score</div>
+          </div>
+          <div class="card grow">
+            <h3>Summary</h3>
+            <p id="result-summary" class="muted-text"></p>
+            <p><strong>Predicted best-fit role:</strong> <span id="result-role"></span></p>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="card">
+            <h3>Score Breakdown</h3>
+            <div id="result-breakdown" class="breakdown-list"></div>
+          </div>
+          <div class="card">
+            <h3>Strengths</h3>
+            <ul id="result-strengths" class="suggestion-list"></ul>
+          </div>
+          <div class="card">
+            <h3>Suggestions to Improve</h3>
+            <ul id="result-suggestions" class="suggestion-list"></ul>
+          </div>
+          <div class="card">
+            <h3>Detected Info</h3>
+            <div id="result-parsed" class="kv-list"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Resume Optimizer</h3>
+          <p class="muted-text">Generate an AI-rewritten, ATS-optimized draft of your resume text.</p>
+          <button id="optimize-btn" class="btn-secondary">Optimize My Resume</button>
+          <div id="optimize-results" class="hidden compare-grid">
+            <div>
+              <h4>Original</h4>
+              <pre id="optimize-original" class="text-block"></pre>
+            </div>
+            <div>
+              <h4>Optimized</h4>
+              <pre id="optimize-new" class="text-block highlight"></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Resume History</h3>
+        <div id="resume-history" class="history-list muted-text">No resumes uploaded yet.</div>
+      </div>
+    </section>
+
+    <!-- SKILL GAP & ROADMAP -->
+    <section id="view-skillgap" class="view">
+      <header class="view-header">
+        <h2>Skill Gap Analysis &amp; Career Roadmap</h2>
+        <p class="muted">Pick a target role to see what's missing and get a week-by-week plan.</p>
+      </header>
+
+      <div class="card">
+        <label>Target role
+          <select id="target-role-select">
+            <option>AI Engineer</option>
+            <option>Backend Developer</option>
+            <option>Frontend Developer</option>
+            <option>Full Stack Developer</option>
+            <option>Data Scientist</option>
+            <option>Data Analyst</option>
+            <option>Data Engineer</option>
+            <option>DevOps Engineer</option>
+            <option>ML Engineer</option>
+            <option>Product Manager</option>
+          </select>
+        </label>
+        <button id="analyze-gap-btn" class="btn-primary">Analyze Skill Gap</button>
+      </div>
+
+      <div id="gap-results" class="hidden dash-grid">
+        <div class="card">
+          <h3>Your Current Skills</h3>
+          <div id="gap-current" class="chip-row"></div>
+        </div>
+        <div class="card">
+          <h3>Missing Skills</h3>
+          <div id="gap-missing" class="chip-row missing"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Your Roadmap</h3>
+        <div id="roadmap-timeline" class="timeline muted-text">Analyze a skill gap to generate your roadmap.</div>
+      </div>
+    </section>
+
+    <!-- JOB MATCHES -->
+    <section id="view-jobs" class="view">
+      <header class="view-header">
+        <h2>AI Job Recommendations</h2>
+        <p class="muted">Matched against your most recent resume's skills.</p>
+      </header>
+      <button id="find-jobs-btn" class="btn-primary">Find Matching Jobs</button>
+      <div id="jobs-list" class="jobs-list"></div>
+    </section>
+
+    <!-- OUTREACH -->
+    <section id="view-outreach" class="view">
+      <header class="view-header">
+        <h2>Cover Letter &amp; Cold Email Generator</h2>
+        <p class="muted">Generate tailored outreach for any job match.</p>
+      </header>
+      <div class="card">
+        <label>Choose a job match
+          <select id="outreach-job-select"><option value="">Find job matches first (Job Matches tab)</option></select>
+        </label>
+        <div class="btn-row">
+          <button id="gen-cover-btn" class="btn-primary">Generate Cover Letter</button>
+          <button id="gen-email-btn" class="btn-secondary">Generate Cold Email</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Output</h3>
+        <pre id="outreach-output" class="text-block muted-text">Nothing generated yet.</pre>
+      </div>
+    </section>
+
+    <!-- APPLICATION TRACKER -->
+    <section id="view-tracker" class="view">
+      <header class="view-header">
+        <h2>Application Tracker</h2>
+        <p class="muted">Track every application from first click to offer.</p>
+      </header>
+
+      <div class="card">
+        <h3>Add Application</h3>
+        <div class="grid-2">
+          <label>Company<input type="text" id="app-company" /></label>
+          <label>Role<input type="text" id="app-role" /></label>
+        </div>
+        <label>Notes<input type="text" id="app-notes" /></label>
+        <button id="add-app-btn" class="btn-primary">Add to Tracker</button>
+      </div>
+
+      <div class="card">
+        <h3>Your Applications</h3>
+        <table class="app-table">
+          <thead><tr><th>Company</th><th>Role</th><th>Status</th><th>Notes</th><th></th></tr></thead>
+          <tbody id="app-table-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- INTERVIEW PREP -->
+    <section id="view-interview" class="view">
+      <header class="view-header">
+        <h2>Interview Preparation</h2>
+        <p class="muted">Practice by category and difficulty.</p>
+      </header>
+      <div class="card">
+        <div class="grid-2">
+          <label>Category
+            <select id="interview-category">
+              <option>Technical</option>
+              <option>HR</option>
+              <option>Behavioral</option>
+              <option>Coding</option>
+              <option>System Design</option>
+            </select>
+          </label>
+          <label>Difficulty
+            <select id="interview-difficulty">
+              <option>Easy</option>
+              <option selected>Medium</option>
+              <option>Hard</option>
+            </select>
+          </label>
+        </div>
+        <button id="get-questions-btn" class="btn-primary">Get Questions</button>
+      </div>
+      <div class="card">
+        <ul id="interview-questions" class="suggestion-list muted-text">Choose a category and difficulty.</ul>
+      </div>
+    </section>
+
+    <!-- PROFILE -->
+    <section id="view-profile" class="view">
+      <header class="view-header">
+        <h2>Profile &amp; Settings</h2>
+      </header>
+      <div class="card">
+        <div class="grid-2">
+          <label>Name<input type="text" id="prof-name" /></label>
+          <label>Target role
+            <select id="prof-target-role">
+              <option>AI Engineer</option>
+              <option>Backend Developer</option>
+              <option>Frontend Developer</option>
+              <option>Full Stack Developer</option>
+              <option>Data Scientist</option>
+              <option>Data Analyst</option>
+              <option>Data Engineer</option>
+              <option>DevOps Engineer</option>
+              <option>ML Engineer</option>
+              <option>Product Manager</option>
+            </select>
+          </label>
+        </div>
+        <div class="grid-2">
+          <label>LinkedIn<input type="text" id="prof-linkedin" /></label>
+          <label>GitHub<input type="text" id="prof-github" /></label>
+        </div>
+        <div class="grid-2">
+          <label>Portfolio<input type="text" id="prof-portfolio" /></label>
+          <label>CGPA<input type="text" id="prof-cgpa" /></label>
+        </div>
+        <label>Bio<input type="text" id="prof-bio" /></label>
+        <button id="save-profile-btn" class="btn-primary">Save Changes</button>
+        <p id="profile-saved-msg" class="muted"></p>
+      </div>
+      <div class="card">
+        <h3>Theme</h3>
+        <button id="theme-toggle-btn" class="btn-secondary">Toggle Light / Dark</button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
