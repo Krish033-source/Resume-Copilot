@@ -5,6 +5,8 @@ breakdown, find skill gaps against a target role, get a week-by-week roadmap,
 see matching jobs, generate a cover letter / cold email, and track your
 applications — all in one lightweight app.
 
+🔗 **Live demo:**https://resume-copilot-64eq.onrender.com/
+
 This is a working, from-scratch full-stack build (Flask + vanilla JS +
 SQLite), kept to a **minimal file count** on purpose:
 
@@ -228,7 +230,6 @@ the repo's "Website" field in GitHub's sidebar — the gear icon next to
 **About**) so it shows up right under the repo name:
 
 ```markdown
-🔗 **Live demo:** https://resume-copilot.onrender.com
 ```
 
 One more thing on Render's free tier specifically: the service **sleeps
