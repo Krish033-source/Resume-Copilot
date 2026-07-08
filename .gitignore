@@ -1,0 +1,17 @@
+# Never commit secrets
+.env
+
+# Local database and uploaded files
+instance/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# OS / editor junk
+.DS_Store
+.vscode/
