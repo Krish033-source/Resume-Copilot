@@ -5,7 +5,7 @@ breakdown, find skill gaps against a target role, get a week-by-week roadmap,
 see matching jobs, generate a cover letter / cold email, and track your
 applications — all in one lightweight app.
 
-🔗 **Live demo:**https://resume-copilot-64eq.onrender.com/
+🔗 **Live demo:** https://resume-copilot-64eq.onrender.com/
 
 This is a working, from-scratch full-stack build (Flask + vanilla JS +
 SQLite), kept to a **minimal file count** on purpose:
