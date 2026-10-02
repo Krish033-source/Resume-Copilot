@@ -24,20 +24,6 @@ resume-copilot/
 └── README.md
 ```
 
-No separate database file, ORM layer, or job-scraper needed — the app is
-self-contained and runs with just Python + SQLite (built into Python).
-
-## What's real vs. what's scoped down
-
-Your brief described a ~140-feature platform (SMTP email sending, live
-scraping from LinkedIn/Internshala/etc., a mock-interview AI, an admin panel,
-semantic embeddings). Building all of that "properly" isn't realistic in one
-pass — a lot of it needs paid APIs, scraping infrastructure that violates
-most sites' terms, or is genuinely a multi-week engineering project.
-
-Instead, this build covers the **real, working core** of every major module,
-with no smoke and mirrors:
-
 | Module | What's implemented |
 |---|---|
 | Auth | Register/login, JWT sessions, password hashing |
@@ -69,7 +55,7 @@ The first run creates `instance/resume_copilot.db` (SQLite) and
 `instance/uploads/` automatically — nothing else to configure to get the app
 running with sample data.
 
-## Optional: enable AI-generated text (Groq)
+## AI-generated text (Groq)
 
 By default, resume rewrites / cover letters / cold emails use solid
 rule-based templates and work with zero configuration. If you want more
@@ -98,25 +84,12 @@ natural, LLM-generated text instead:
 **Unstop (internships)** and **Devpost (hackathons)** — both are called
 automatically, no keys needed. Devpost's public API
 (`devpost.com/api/hackathons`) is stable and verified working. Unstop's
-endpoint is the same public JSON endpoint their own site calls — there's no
-official partner agreement backing it, so treat it as best-effort: if Unstop
-ever changes its response shape or starts blocking automated requests, that
-source quietly returns nothing rather than breaking the app (whatever other
-sources are up still show).
+endpoint is the same public JSON endpoint their own site calls.
 
 If none of the live sources return anything (no internet, or Adzuna keys
 missing and Unstop/Devpost both happen to be unreachable), job matching
 falls back to a small built-in sample dataset so the feature never just
 breaks.
-
-**What I deliberately did NOT wire in:**
-- **Indeed** — they shut down their public job-search API years ago (what
-  remains today is only for employers posting jobs, not for searching
-  listings). No legitimate free option exists here anymore.
-- **foundit.in** — their `robots.txt` explicitly disallows automated access
-  to the search endpoint. Respecting that.
-- **LinkedIn / raw HTML scraping of any site** — breaks terms of service,
-  not something this project does.
 
 ## Real email sending
 
@@ -136,14 +109,6 @@ actually send cover letters / cold emails (with your resume attached):
    Gmail password. Other providers (Outlook, Yahoo, a custom domain) work
    the same way with their own SMTP host/port.
 3. Restart the app.
-
-Important: none of the job/internship/hackathon APIs publish recruiter email
-addresses (true of virtually every job platform — applications get routed
-through their own portal to prevent spam). So there's no "auto-discover the
-recruiter's email" step. You type in a recipient email you already have
-(company site, LinkedIn, a referral, etc.), review the generated draft —
-it's fully editable in a text box — and only then hit Send. Nothing goes out
-automatically or in bulk.
 
 ## Notes
 
