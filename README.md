@@ -83,9 +83,6 @@ TEST_DATABASE_URL=postgresql+psycopg://user:pw@localhost/rc_test pytest -q   # P
 ```
 25 tests cover ATS logic, real PDF/DOCX layout detection, auth + CSRF, isolation between users, upserts/dedupe, rate-limit claiming, source failure handling and the Groq client (mocked).
 
-## Not verifiable in the build sandbox
-
-External APIs (job boards, arXiv, OpenAlex, Groq) and CDN assets were not reachable from the build environment, so live responses are covered by mocks and defensive parsing; run `python -m flask --app wsgi refresh-jobs` once after deploying and check `/api/sources/status`.
 
 ## Layout
 
