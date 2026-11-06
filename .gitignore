@@ -1,17 +1,10 @@
-# Never commit secrets
-.env
-
-# Local database and uploaded files
-instance/
-
-# Python
 __pycache__/
 *.pyc
-*.pyo
-.venv/
+.env
 venv/
-env/
-
-# OS / editor junk
+.venv/
+*.db
+instance/
+.pytest_cache/
+node_modules/
 .DS_Store
-.vscode/

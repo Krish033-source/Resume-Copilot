@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: resume-copilot
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: sh start.sh
+    healthCheckPath: /healthz
+    envVars:
+      - { key: APP_ENV, value: production }
+      - { key: PYTHON_VERSION, value: 3.12.3 }
+      - { key: SECRET_KEY, generateValue: true }
+      - { key: DATABASE_URL, sync: false }   # paste a Neon/Supabase/Render Postgres URL
+      - { key: GROQ_API_KEY, sync: false }
+      - { key: ADZUNA_APP_ID, sync: false }
+      - { key: ADZUNA_APP_KEY, sync: false }
+      - { key: CONTACT_EMAIL, sync: false }

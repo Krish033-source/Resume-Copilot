@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_USER: rc, POSTGRES_PASSWORD: rc, POSTGRES_DB: resume_copilot }
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U rc"], interval: 3s, retries: 20 }
+  web:
+    build: .
+    depends_on: { db: { condition: service_healthy } }
+    ports: ["8000:8000"]
+    environment:
+      DATABASE_URL: postgresql://rc:rc@db:5432/resume_copilot
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in your shell or .env (32+ chars)}
+      APP_ENV: production
+      COOKIE_SECURE: "0"
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      ADZUNA_APP_ID: ${ADZUNA_APP_ID:-}
+      ADZUNA_APP_KEY: ${ADZUNA_APP_KEY:-}
+volumes: { pgdata: {} }

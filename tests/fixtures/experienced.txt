@@ -1,0 +1,34 @@
+PRIYA NAIR
+Bengaluru, Karnataka
+priya.nair@outlook.com | +91-9988776655 | linkedin.com/in/priyanair | github.com/priyanair
+
+PROFESSIONAL SUMMARY
+Backend engineer with 6 years building payment and data platforms in Python, Go and PostgreSQL.
+
+WORK EXPERIENCE
+Senior Software Engineer – Flipkart, Bengaluru                              Mar 2021 – Present
+- Led migration of 14 monolith modules to microservices on Kubernetes, cutting deploy time from 45 min to 6 min
+- Designed Kafka event pipeline processing 2.4M events/day with 99.95% delivery
+- Mentored 4 engineers and introduced code review standards that reduced production bugs by 31%
+Technologies: Python, Go, Kafka, Kubernetes, PostgreSQL, Redis, AWS
+
+Software Engineer – Zoho Corporation, Chennai                               Jul 2018 – Feb 2021
+- Built REST APIs in Django serving 800k requests/day with p99 latency of 180 ms
+- Optimised SQL queries, reducing report generation from 90 s to 12 s
+- Implemented CI/CD with Jenkins and Docker, increasing release frequency 3x
+
+Software Engineering Intern, Zoho Corporation                               Jan 2018 – Jun 2018
+- Automated regression suite with Selenium covering 220 test cases
+
+EDUCATION
+B.E. Computer Science, Anna University                                      2014 – 2018
+CGPA: 8.1/10
+
+SKILLS
+Languages: Python, Go, SQL, Bash
+Data: PostgreSQL, Redis, Kafka, Elasticsearch
+Cloud: AWS, Docker, Kubernetes, Terraform, Jenkins
+
+CERTIFICATIONS
+AWS Certified Solutions Architect – Associate (2022)
+Certified Kubernetes Administrator, CNCF (2023)

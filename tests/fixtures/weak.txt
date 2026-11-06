@@ -1,0 +1,17 @@
+RAHUL KUMAR
+rahul_cool_boy123@gmail.com
+
+OBJECTIVE
+Looking for a challenging position where I can use my skills. Hard working team player.
+
+EDUCATION
+B.Tech Computer Science, ABC Institute of Technology 2020 - 2024
+
+PROJECTS
+Library System
+Made a library management system using Java.
+Weather App
+Worked on a weather app.
+
+TECHNICAL SKILLS
+Java, C, C++, Python, HTML, CSS, JavaScript, MySQL, React, Node.js, Angular, Vue, Docker, Kubernetes, AWS, Azure, GCP, Machine Learning, Deep Learning, TensorFlow, PyTorch, Git, Linux

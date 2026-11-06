@@ -1,0 +1,47 @@
+Aarav Sharma
+Kolkata, West Bengal | +91 98765 43210 | aarav.sharma@gmail.com
+linkedin.com/in/aarav-sharma-dev | github.com/aaravsharma | aarav.dev
+
+SUMMARY
+Final-year B.Tech CSE student building backend and ML systems with Python and FastAPI.
+
+EDUCATION
+B.Tech in Computer Science and Engineering                      Aug 2021 – May 2025
+Jadavpur University, Kolkata                                    CGPA: 8.7/10
+
+EXPERIENCE
+Backend Engineering Intern | Razorpay                          Jun 2024 – Aug 2024
+• Built 6 REST API endpoints in FastAPI serving 12,000 daily requests with p95 latency under 120 ms
+• Reduced database query time by 38% by adding PostgreSQL indexes and caching hot reads in Redis
+• Wrote 45 pytest unit tests raising coverage from 52% to 81%
+Machine Learning Intern, TCS Research                          Jan 2024 – Mar 2024
+• Fine-tuned a BERT classifier on 25k support tickets, improving F1 from 0.71 to 0.84
+• Responsible for helping the team with data cleaning tasks
+• Worked on dashboards
+
+PROJECTS
+ResumeRank | Tech: Python, Flask, scikit-learn, Docker                github.com/aaravsharma/resumerank
+• Developed a resume ranking service processing 5,000 resumes using TF-IDF, achieving 91% top-3 accuracy
+• Deployed with Docker on Render and added GitHub Actions CI
+CampusConnect (React, Node.js, MongoDB)
+Built a student networking platform used by 300+ students with real time chat over WebSockets.
+
+OPEN SOURCE
+• Contributed 3 merged pull requests to scikit-learn documentation and a bug fix in pandas
+• Participant, Hacktoberfest 2023
+
+CERTIFICATIONS
+AWS Certified Cloud Practitioner, Amazon Web Services (2024)
+Machine Learning Specialization – DeepLearning.AI, Coursera
+Python for Everybody - Coursera
+
+ACHIEVEMENTS
+• Winner, Smart India Hackathon 2023 (Grand Finale) among 1,200 teams
+• Codeforces Specialist (1480 rating); solved 600+ LeetCode problems
+• Secretary, Coding Club, Jadavpur University - organised 4 events for 500 students
+
+SKILLS
+Languages: Python, Java, C++, SQL, JavaScript
+Backend: FastAPI, Flask, Node.js, REST APIs, PostgreSQL, MongoDB, Redis
+Tools: Git, Docker, Linux, GitHub Actions, AWS
+ML: scikit-learn, PyTorch, pandas, NumPy, NLP
