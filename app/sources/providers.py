@@ -111,13 +111,13 @@ class Adzuna(Source):
         c = current_app.config
         return bool(c.get("ADZUNA_APP_ID") and c.get("ADZUNA_APP_KEY"))
 
-    def fetch(self, what: str = "software developer", where: str = "", page: int = 1, per_page: int = 30):
+    def fetch(self, what: str = "software developer", where: str = "", page: int = 1, per_page: int = 30, timeout: int = 15):
         c = current_app.config
         params = {"app_id": c["ADZUNA_APP_ID"], "app_key": c["ADZUNA_APP_KEY"], "results_per_page": per_page, "what": what,
                   "content-type": "application/json"}
         if where:
             params["where"] = where
-        data = get_json(f"https://api.adzuna.com/v1/api/jobs/{c['ADZUNA_COUNTRY']}/search/{page}", params=params)
+        data = get_json(f"https://api.adzuna.com/v1/api/jobs/{c['ADZUNA_COUNTRY']}/search/{page}", params=params, timeout=timeout)
         out = []
         for j in data.get("results", []):
             title = j.get("title", "")

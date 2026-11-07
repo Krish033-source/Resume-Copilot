@@ -14,6 +14,7 @@ export async function resumeView(v) {
 }
 
 function drawUpload() {
+  if (!$("#up")) return;
   mount($("#up"), html`<div class="row wrap" style="gap:18px;align-items:stretch">
     <div class="drop grow" id="drop" tabindex="0" role="button" aria-label="Upload resume">${icon("upload")}<b>Drop your resume here or click to browse</b><span class="sm muted">PDF, DOCX or TXT · up to 8 MB · stored privately in your account</span><input type="file" id="file" accept=".pdf,.docx,.txt" hidden></div>
     <div class="stack" style="min-width:240px;flex:0 0 260px"><label class="f">Target role<select class="input" id="role">${S.meta.roles.map((r) => html`<option ${r === (cur?.target_role || S.user.target_role) ? "selected" : ""}>${r}</option>`)}</select></label>
@@ -38,6 +39,7 @@ async function upload(file) {
 const list = (arr, fn, empty) => arr.length ? arr.map(fn) : html`<div class="sm faint">${empty}</div>`;
 
 function drawResult() {
+  if (!$("#res")) return;
   const r = cur, a = r.analysis, p = r.parsed, c = p.contact, t = p.totals;
   const sevCount = (s) => a.findings.filter((f) => f.severity === s).length;
   const rr = a.role_report;
@@ -103,7 +105,7 @@ async function jdMatch() {
 }
 
 async function tailor() {
-  try { const t = await api(`/resumes/${cur.id}/tailor`, { method: "POST", json: { jd: $("#jd").value } });
+  try { const t = await api(`/resumes/${cur.id}/tailor`, { method: "POST", json: { jd: $("#jd").value }, timeout: 90000 });
     mount($("#jdout"), html`<div class="eyebrow">AI tailoring</div><div class="pre">${t.summary}</div>${t.keyword_additions.length ? html`<div class="chips mt-s">${t.keyword_additions.map((k) => html`<span class="chip mint">${k}</span>`)}</div>` : ""}
       ${t.bullet_edits.map((b) => html`<div class="item"><div class="xs faint">Before</div><div class="sm muted">${b.original}</div><div class="xs faint mt-s">After</div><div class="sm">${b.improved}</div></div>`)}
       ${t.honest_gaps.length ? html`<div class="sm mt-s"><b>Honest gaps:</b><ul>${t.honest_gaps.map((g) => html`<li>${g}</li>`)}</ul></div>` : ""}${t.cover_note ? html`<div class="eyebrow mt">Cover note</div><div class="pre">${t.cover_note}</div>` : ""}`);
@@ -112,7 +114,7 @@ async function tailor() {
 
 async function runAI(silent) {
   const out = $("#aiout"); if (out && silent) out.innerHTML = '<div class="row"><span class="spinner"></span><span class="sm muted">Running AI review…</span></div>';
-  try { const d = await api(`/resumes/${cur.id}/ai-review`, { method: "POST" }); cur.ai_review = d.ai_review; drawAI(d.ai_review); }
+  try { const d = await api(`/resumes/${cur.id}/ai-review`, { method: "POST", timeout: 90000 }); cur.ai_review = d.ai_review; drawAI(d.ai_review); }
   catch (e) { if (!silent) toast(e.message, "err"); if (out) out.innerHTML = `<div class="sm muted">${esc(e.message)}</div>`; }
 }
 function drawAI(a) {

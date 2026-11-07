@@ -47,6 +47,10 @@ class Config:
     GROQ_FALLBACK_MODELS = [m.strip() for m in os.getenv(
         "GROQ_FALLBACK_MODELS", "llama-3.3-70b-versatile,openai/gpt-oss-20b").split(",") if m.strip()]
     GROQ_TIMEOUT = int(os.getenv("GROQ_TIMEOUT", "40"))
+    # gpt-oss is text-only, so screenshots are read by a vision model first, then gpt-oss writes the message
+    GROQ_VISION_MODEL = os.getenv("GROQ_VISION_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
+    GROQ_VISION_FALLBACKS = [m.strip() for m in os.getenv(
+        "GROQ_VISION_FALLBACKS", "meta-llama/llama-4-maverick-17b-128e-instruct").split(",") if m.strip()]
 
     # Job / research sources
     ADZUNA_APP_ID = os.getenv("ADZUNA_APP_ID", "")

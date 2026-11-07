@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timezone
 
-from .skills import ROLES, extract_skills, role_weights
+from .skills import ROLES, role_weights
 
 SENIOR_RE = re.compile(r"\b(senior|sr\.?|lead|principal|staff|head|director|manager|architect|vp)\b", re.I)
 JUNIOR_RE = re.compile(r"\b(junior|jr\.?|entry|graduate|fresher|trainee|associate|intern(?:ship)?|apprentice)\b", re.I)
@@ -15,13 +15,12 @@ def resume_profile(parsed: dict) -> dict:
 
 
 def match_job(job, profile: dict, role: str, stage: str) -> dict:
+    """`job` needs: title, kind, skills (ordered by frequency), posted_at. Uses stored skills only (no regex work)."""
     jskills = list(job.skills or [])
-    text = (job.title + " " + (job.description or "")[:1500]).lower()
     title_l = job.title.lower()
-    cnt = extract_skills(job.title + "\n" + (job.description or "")[:3000])
     matched, missing, tot, got = [], [], 0.0, 0.0
-    for s in jskills:
-        w = min(3, cnt.get(s, 1)) * (2 if s in title_l else 1)
+    for i, s in enumerate(jskills):
+        w = (3 if i < 3 else 2 if i < 7 else 1) * (2 if s in title_l else 1)
         tot += w
         if s in profile["ctx"]:
             got += w

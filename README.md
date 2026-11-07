@@ -13,7 +13,8 @@ Flask · PostgreSQL · Groq (optional) · vanilla JS Bento UI.
 | **Impact metrics** | Only real metrics count (%, users/requests, latency, cost, F1...). Years, phone numbers, CGPA are ignored |
 | **JD match** | Paste a job description: required vs preferred skills, in-context vs listed-only, keywords, years of experience |
 | **Groq AI** | Recruiter-style review, bullet rewrites (verified against your text), JD tailoring, outreach, interview feedback. Model chain with automatic fallback. The AI **never changes** the ATS score |
-| **Opportunities** | Remotive, Arbeitnow, Remote OK, Jobicy, The Muse (no key) + Adzuna (key). Cached in Postgres, deduped, atomically rate-limited. Jobs / Internships / Freelance tabs |
+| **Opportunities** | Adzuna (key) is queried first and shown immediately; Remotive, Arbeitnow, Remote OK, Jobicy, The Muse load in a background thread and the page fills in by itself (polling). Cached in Postgres, deduped, atomically rate-limited. Pages never wait on slow providers |
+| **Smart outreach** | Paste a job description, upload/paste (Ctrl+V) a screenshot, or pick a listing. The app extracts role, company, skills, years and contact email, matches them to your resume, picks your best proof lines (internships and metrics first) and writes a cold email, LinkedIn note, cover letter or referral message. Works without AI (template); with Groq the screenshot is read by a vision model and `gpt-oss` writes the text from verified facts only. It never claims skills missing from your resume |
 | **Research** | arXiv + OpenAlex paper search with topics derived from your skills |
 | **Explore** | Deep links for Internshala, Unstop, LinkedIn, Naukri, Devpost, MLH, Upwork, GSoC, Outreachy ... (no scraping) |
 | **Dashboard** | Bento grid: ATS ring, trend, breakdown, role radar, pipeline funnel, weekly applications, market-demand skills, matches, roadmap, activity heatmap |
@@ -43,7 +44,7 @@ Optional cron to keep listings fresh: `python -m flask --app wsgi refresh-jobs`.
 
 ## Configuration
 
-See `.env.example`. Key variables: `SECRET_KEY` (required in production, 32+ chars), `DATABASE_URL`, `GROQ_API_KEY`, `GROQ_MODEL` (default `openai/gpt-oss-120b`, fallbacks `llama-3.3-70b-versatile,openai/gpt-oss-20b`), `ADZUNA_APP_ID/KEY`, `RATELIMIT_STORAGE_URI`.
+See `.env.example`. Key variables: `SECRET_KEY` (required in production, 32+ chars), `DATABASE_URL`, `GROQ_API_KEY`, `GROQ_MODEL` (default `openai/gpt-oss-120b`, fallbacks `llama-3.3-70b-versatile,openai/gpt-oss-20b`), `GROQ_VISION_MODEL` (default `meta-llama/llama-4-scout-17b-16e-instruct`, used only to read screenshots), `ADZUNA_APP_ID/KEY`, `RATELIMIT_STORAGE_URI`.
 Groq changes its model lineup often; if a model is retired the app falls through the chain automatically, and you can change `GROQ_MODEL` without code changes.
 
 ## How the ATS score works
@@ -81,8 +82,11 @@ Role profiles (core / important / nice skills per role) live in `app/services/sk
 pytest -q                                                   # SQLite
 TEST_DATABASE_URL=postgresql+psycopg://user:pw@localhost/rc_test pytest -q   # PostgreSQL
 ```
-25 tests cover ATS logic, real PDF/DOCX layout detection, auth + CSRF, isolation between users, upserts/dedupe, rate-limit claiming, source failure handling and the Groq client (mocked).
+34 tests cover ATS logic, real PDF/DOCX layout detection, auth + CSRF, isolation between users, upserts/dedupe, rate-limit claiming, source failure handling and the Groq client (mocked), the non-blocking source refresh, Adzuna-first loading, list speed with hundreds of jobs, JD analysis and the screenshot-to-email flow.
 
+## Not verifiable in the build sandbox
+
+External APIs (job boards, arXiv, OpenAlex, Groq) and CDN assets were not reachable from the build environment, so live responses are covered by mocks and defensive parsing; run `python -m flask --app wsgi refresh-jobs` once after deploying and check `/api/sources/status`.
 
 ## Layout
 

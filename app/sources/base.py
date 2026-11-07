@@ -17,7 +17,7 @@ def user_agent() -> str:
     return "ResumeCopilot/2.0 (+https://github.com/Krish033-source/Resume-Copilot" + (f"; {mail})" if mail else ")")
 
 
-def get_json(url: str, params=None, timeout=15, headers=None):
+def get_json(url: str, params=None, timeout=10, headers=None):
     h = {"User-Agent": user_agent(), "Accept": "application/json"}
     h.update(headers or {})
     r = requests.get(url, params=params, headers=h, timeout=timeout)

@@ -4,7 +4,7 @@ export const raw = (s) => new Raw(String(s ?? ""));
 export const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const render = (v) => v == null || v === false ? "" : v instanceof Raw ? v.s : Array.isArray(v) ? v.map(render).join("") : esc(v);
 export const html = (strings, ...vals) => new Raw(strings.reduce((o, s, i) => o + s + (i < vals.length ? render(vals[i]) : ""), ""));
-export const mount = (el, tpl) => { el.innerHTML = tpl instanceof Raw ? tpl.s : esc(tpl); return el; };
+export const mount = (el, tpl) => { if (!el) return null; el.innerHTML = tpl instanceof Raw ? tpl.s : esc(tpl); return el; };  // tolerant: page may have changed while a request was in flight
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 export const safeUrl = (u) => /^https?:\/\//i.test(u || "") ? u : "#";
@@ -30,16 +30,17 @@ async function refresh() {
     .then((r) => r.ok).finally(() => { setTimeout(() => (refreshing = null), 0); });
   return refreshing;
 }
-export async function api(path, { method = "GET", json, form, retry = true } = {}) {
+export async function api(path, { method = "GET", json, form, retry = true, timeout = 30000 } = {}) {
   const headers = {}; let body;
   if (method !== "GET") headers["X-CSRF-TOKEN"] = cookie("csrf_access_token");
   if (json !== undefined) { headers["Content-Type"] = "application/json"; body = JSON.stringify(json); } else if (form) body = form;
-  let r;
-  try { r = await fetch("/api" + path, { method, headers, body, credentials: "same-origin" }); }
-  catch { throw new ApiError("Network error. Check your connection.", 0); }
-  const data = await r.json().catch(() => ({}));
+  let r, data;
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), timeout);
+  try { r = await fetch("/api" + path, { method, headers, body, credentials: "same-origin", signal: ctl.signal }); data = await r.json().catch(() => ({})); }
+  catch (e) { throw new ApiError(e.name === "AbortError" ? "This is taking too long. Please try again." : "Network error. Check your connection.", 0); }
+  finally { clearTimeout(timer); }
   if (r.status === 401 && retry && (data.code === "token_expired" || data.code === "csrf") && !path.startsWith("/auth/")) {
-    if (await refresh()) return api(path, { method, json, form, retry: false });
+    if (await refresh()) return api(path, { method, json, form, retry: false, timeout });
   }
   if (r.status === 401 && !path.startsWith("/auth/")) window.dispatchEvent(new Event("rc:logout"));
   if (!r.ok) throw new ApiError(data.error || "Request failed", r.status, data);

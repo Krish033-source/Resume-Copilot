@@ -127,25 +127,52 @@ def prune(days: int = 45):
     db.session.commit()
 
 
-def ensure_fresh() -> str:
-    """Called on opportunity searches. Empty DB -> block briefly; stale -> refresh in background."""
-    if not current_app.config.get("AUTO_REFRESH_SOURCES"):
-        return "disabled"
-    if db.session.query(Job.id).limit(1).first() is None:
-        refresh_all()
-        return "synced"
-    cutoff_any = _now() - timedelta(hours=min(ttl_hours(s.name) for s in FEED_SOURCES))
-    stale = db.session.query(SourceSync.source).filter((SourceSync.last_run_at.is_(None)) | (SourceSync.last_run_at < cutoff_any)).first()
-    if stale or db.session.query(SourceSync).count() < len(FEED_SOURCES):
-        app = current_app._get_current_object()
+_BG_LOCK = threading.Lock()
+_BG_ACTIVE = False
 
-        def bg():
+
+def refreshing() -> bool:
+    return _BG_ACTIVE
+
+
+def start_background_refresh() -> bool:
+    """Start (at most one) background thread that fetches every feed source. Never blocks the request."""
+    global _BG_ACTIVE
+    with _BG_LOCK:
+        if _BG_ACTIVE:
+            return False
+        _BG_ACTIVE = True
+    app = current_app._get_current_object()
+
+    def bg():
+        global _BG_ACTIVE
+        try:
             with app.app_context():
                 try:
                     refresh_all()
                 finally:
                     db.session.remove()
-        threading.Thread(target=bg, daemon=True).start()
+        except Exception:
+            log.exception("background refresh crashed")
+        finally:
+            _BG_ACTIVE = False
+
+    threading.Thread(target=bg, daemon=True, name="job-refresh").start()
+    return True
+
+
+def ensure_fresh() -> str:
+    """Never blocks. Returns 'fresh' or 'refreshing' (a background fetch is running or was just started)."""
+    if not current_app.config.get("AUTO_REFRESH_SOURCES"):
+        return "disabled"
+    if _BG_ACTIVE:
+        return "refreshing"
+    cutoff_any = _now() - timedelta(hours=min(ttl_hours(s.name) for s in FEED_SOURCES))
+    empty = db.session.query(Job.id).limit(1).first() is None
+    stale = db.session.query(SourceSync.source).filter((SourceSync.last_run_at.is_(None)) | (SourceSync.last_run_at < cutoff_any)).first()
+    unseen = db.session.query(SourceSync).count() < len(FEED_SOURCES)
+    if empty or stale or unseen:
+        start_background_refresh()
         return "refreshing"
     return "fresh"
 
@@ -159,7 +186,7 @@ def adzuna_search(what: str, where: str = "", page: int = 1) -> int:
     if hit and time.time() - hit < 1800:
         return 0
     try:
-        rows = ADZUNA.fetch(what=what, where=where, page=page)
+        rows = ADZUNA.fetch(what=what, where=where, page=page, timeout=7)
         _ADZ_CACHE[key] = time.time()
         return upsert_jobs(rows, "adzuna")
     except Exception as e:

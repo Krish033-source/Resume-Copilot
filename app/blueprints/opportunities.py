@@ -20,9 +20,11 @@ def _snippet(t: str, n=260):
     return t if len(t) <= n else t[: n - 1] + "\u2026"
 
 
-def _card(j: Job, m=None, saved=False):
+def _card(j, m=None, saved=False):
+    snippet = getattr(j, "snippet", None)
+    snippet = _snippet(snippet if snippet is not None else j.description)
     return {"id": j.id, "source": j.source, "title": j.title, "company": j.company, "location": j.location, "remote": j.remote, "kind": j.kind,
-            "url": j.url, "salary": j.salary, "logo": j.logo, "skills": (j.skills or [])[:8], "snippet": _snippet(j.description),
+            "url": j.url, "salary": j.salary, "logo": j.logo, "skills": (j.skills or [])[:8], "snippet": snippet,
             "posted_at": j.posted_at.isoformat() if j.posted_at else None, "saved": saved, "match": m}
 
 
@@ -33,18 +35,31 @@ def _profile(u):
     return resume_profile(r.parsed), normalize_role(r.target_role or u.target_role), (r.analysis or {}).get("stage", "fresher")
 
 
+def _adzuna_query(q: str, kind: str, role: str) -> str:
+    base = q or ROLES[role]["titles"][0]
+    return base + (" intern" if kind == "internship" else " freelance" if kind == "freelance" else "")
+
+
+LIGHT = (Job.id, Job.source, Job.title, Job.company, Job.location, Job.remote, Job.kind, Job.url, Job.salary, Job.logo, Job.skills, Job.posted_at)
+
+
 @bp.get("/opportunities")
 @jwt_required()
 def list_opportunities():
+    """Fast path: Adzuna (if configured) is queried first and shown immediately; every other source refreshes in a
+    background thread and the UI polls. Only needed columns are loaded and matching never runs regexes."""
     u = current_user()
     a = request.args
     kind = a.get("kind", "")
     q, loc = clip(a.get("q"), 80), clip(a.get("location"), 80)
     page, per = max(1, a.get("page", 1, type=int)), max(5, min(50, a.get("per_page", 20, type=int)))
+    prof, role, stage = _profile(u)
+    fast = a.get("fast") == "1"          # dashboard widget: DB only
     state = registry.ensure_fresh()
-    if q or kind == "internship":
-        registry.adzuna_search((q or "software") + (" intern" if kind == "internship" else ""), loc)
-    qs = Job.query
+    adz = 0
+    if not fast:
+        adz = registry.adzuna_search(_adzuna_query(q, kind, role), loc)
+    qs = db.session.query(*LIGHT, db.func.substr(Job.description, 1, 400).label("snippet"))
     if kind in KINDS:
         qs = qs.filter(Job.kind == kind)
     if a.get("remote") == "1":
@@ -56,16 +71,15 @@ def list_opportunities():
         qs = qs.filter(or_(db.func.lower(Job.title).like(like), db.func.lower(Job.company).like(like), db.func.lower(Job.description).like(like)))
     if loc:
         qs = qs.filter(db.func.lower(Job.location).like(f"%{loc.lower()}%"))
-    rows = qs.order_by(Job.posted_at.desc().nullslast(), Job.id.desc()).limit(500).all()
-    saved_ids = {s.job_id for s in SavedJob.query.filter_by(user_id=u.id).all()}
-    prof, role, stage = _profile(u)
+    rows = qs.order_by(Job.posted_at.desc().nullslast(), Job.id.desc()).limit(300).all()
+    saved_ids = {r[0] for r in db.session.query(SavedJob.job_id).filter_by(user_id=u.id).all()}
     items = [(j, match_job(j, prof, role, stage) if prof else None) for j in rows]
     if a.get("sort", "match") == "match" and prof:
         items.sort(key=lambda x: -x[1]["score"])
     total = len(items)
     chunk = items[(page - 1) * per: page * per]
     return jsonify({"items": [_card(j, m, j.id in saved_ids) for j, m in chunk], "total": total, "page": page, "pages": max(1, -(-total // per)),
-                    "sync": state, "personalized": bool(prof), "role": role})
+                    "sync": "refreshing" if registry.refreshing() else state, "personalized": bool(prof), "role": role, "adzuna_new": adz})
 
 
 @bp.get("/opportunities/<int:jid>")

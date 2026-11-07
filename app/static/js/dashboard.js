@@ -6,7 +6,7 @@ const tint = (s) => (s >= 75 ? "tint-mint" : s >= 55 ? "tint-amber" : "");
 
 export async function dashboard(v) {
   mount(v, html`<div class="pagehead"><div><h1>Dashboard</h1></div></div><div class="bento"><div class="tile c12 skel"></div></div>`);
-  const [o, opp] = await Promise.all([api("/analytics/overview"), api("/opportunities?per_page=5").catch(() => ({ items: [] }))]);
+  const o = await api("/analytics/overview");
   const a = o.ats, p = o.pipeline, has = a.score != null;
   const hr = new Date().getHours(), greet = hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
   const maxHeat = Math.max(1, ...p.heatmap.map((h) => h.count));
@@ -37,19 +37,33 @@ export async function dashboard(v) {
     <section class="tile c4"><div class="eyebrow">In-demand skills (live listings)</div>${o.market.top_skills.length ? o.market.top_skills.slice(0, 7).map((s) => html`<div class="comp" style="grid-template-columns:110px 1fr 40px"><span>${s.skill}</span><div class="bar ${s.have ? "mint" : "coral"}"><i style="width:${Math.round(100 * s.jobs / o.market.top_skills[0].jobs)}%"></i></div><span>${s.jobs}</span></div>`)
       : html`<div class="empty">Open <a href="#/opportunities">Opportunities</a> once to load market data.</div>`}<div class="xs faint mt-s"><span style="color:var(--mint)">●</span> you have it &nbsp;<span style="color:var(--coral)">●</span> gap</div></section>
 
-    <section class="tile c8"><div class="eyebrow">Top matches for you</div>
-      ${opp.items.length ? opp.items.map((j) => html`<div class="row item"><div class="logo">${j.logo ? html`<img src="${safeUrl(j.logo)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : (j.company || "?")[0]}</div>
-        <div class="grow" style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${j.title}</div><div class="sm muted">${j.company} · ${j.location || "Remote"} · <span class="chip ${j.kind === "internship" ? "violet" : j.kind === "freelance" ? "sky" : ""}">${cap(j.kind)}</span></div></div>
-        ${j.match ? miniRing(j.match.score) : ""}</div>`) : html`<div class="empty">Listings load on first visit to Opportunities.</div>`}
+    <section class="tile c8"><div class="eyebrow">Top matches for you</div><div id="matches"><div class="skel" style="min-height:150px"></div></div>
       <a class="btn sm mt-s" href="#/opportunities">View all</a></section>
     <section class="tile c4"><div class="eyebrow">Learning roadmap</div>${o.skills.roadmap.length ? o.skills.roadmap.slice(0, 4).map((r) => html`<div class="item"><div class="row between"><span class="t">${r.skill}</span><span class="chip ${r.priority === "core" ? "coral" : "amber"}">${r.priority}</span></div><div class="xs muted">${r.action}</div></div>`) : html`<div class="empty">No gaps detected.</div>`}<a class="btn sm mt-s" href="#/skills">Full plan</a></section>
     <section class="tile c12"><div class="eyebrow">Activity · last 26 weeks</div><div class="heat" role="img" aria-label="Activity heatmap">${p.heatmap.map((h) => html`<i class="${h.count ? "l" + Math.min(3, Math.ceil(3 * h.count / maxHeat)) : ""}" title="${h.date}: ${h.count}"></i>`)}</div></section>
   </div>`);
 
+  loadMatches(0);
   const c = { mint: cssv("--mint"), amber: cssv("--amber"), sky: cssv("--sky"), line: cssv("--line"), coral: cssv("--coral") };
   if (a.trend.length > 1) chart("ch-trend", { type: "line", data: { labels: a.trend.map((t) => t.label), datasets: [{ data: a.trend.map((t) => t.score), borderColor: c.amber, backgroundColor: c.amber + "22", fill: true, tension: .35, pointRadius: 3 }] }, options: { plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100 } } } });
   const cats = Object.entries(o.skills.categories);
   if (cats.length >= 3) chart("ch-radar", { type: "radar", data: { labels: cats.map((x) => x[0]), datasets: [{ data: cats.map((x) => Math.round(x[1] * 100)), borderColor: c.mint, backgroundColor: c.mint + "33", pointRadius: 2 }] }, options: { plugins: { legend: { display: false } }, scales: { r: { min: 0, max: 100, ticks: { display: false }, grid: { color: c.line }, angleLines: { color: c.line } } } } });
   if (p.total) chart("ch-funnel", { type: "bar", data: { labels: p.funnel.map((f) => LBL[f.status]), datasets: [{ data: p.funnel.map((f) => f.count), backgroundColor: [c.sky, c.amber, c.amber, c.mint, c.mint, c.coral], borderRadius: 8 }] }, options: { indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { ticks: { precision: 0 } } } } });
   chart("ch-weekly", { type: "bar", data: { labels: p.weekly.map((w) => w.label), datasets: [{ data: p.weekly.map((w) => w.count), backgroundColor: c.amber, borderRadius: 6 }] }, options: { plugins: { legend: { display: false } }, scales: { y: { ticks: { precision: 0 }, beginAtZero: true } } } });
+}
+
+
+async function loadMatches(n) {
+  const box = $("#matches"); if (!box) return;
+  try {
+    const d = await api("/opportunities?per_page=5&fast=1", { timeout: 15000 });
+    if (!d.items.length) {
+      mount(box, html`<div class="empty">${d.sync === "refreshing" ? html`<span class="spinner"></span><br>Fetching listings in the background…` : html`No listings yet. Open <a href="#/opportunities">Opportunities</a> to load some.`}</div>`);
+      if (d.sync === "refreshing" && n < 8) setTimeout(() => loadMatches(n + 1), 5000);
+      return;
+    }
+    mount(box, html`${d.items.map((j) => html`<div class="row item"><div class="logo">${j.logo ? html`<img src="${safeUrl(j.logo)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : (j.company || "?")[0]}</div>
+      <div class="grow" style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${j.title}</div><div class="sm muted">${j.company} · ${j.location || "Remote"} · <span class="chip ${j.kind === "internship" ? "violet" : j.kind === "freelance" ? "sky" : ""}">${cap(j.kind)}</span></div></div>
+      ${j.match ? miniRing(j.match.score) : ""}</div>`)}`);
+  } catch { if ($("#matches")) mount($("#matches"), html`<div class="empty">Could not load matches right now.</div>`); }
 }
