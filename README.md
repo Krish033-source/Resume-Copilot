@@ -15,7 +15,7 @@ A career platform with a **transparent, deterministic 100-point ATS engine**, li
 ![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF?logo=githubactions&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-34-brightgreen)
 
-**[ Try it live](https://resume-copilot-64eq.onrender.com/)** · [Features](#-features) · [How scoring works](#-how-the-ats-score-works) · [Architecture](#-architecture) · [API](#-api-reference) · [Run locally](#-run-locally)
+**[ Try it live NOW](https://resume-copilot-64eq.onrender.com/)** · [Features](#-features) · [How scoring works](#-how-the-ats-score-works) · [Architecture](#-architecture) · [API](#-api-reference) · [Run locally](#-run-locally)
 
 <br>
 
@@ -23,8 +23,6 @@ A career platform with a **transparent, deterministic 100-point ATS engine**, li
 
 </div>
 
-> 💡 **Core idea:** same resume + same role → **same score, every time.** The LLM explains and rewrites, but it **never** touches the number.
->
 > ⏳ The free Render instance sleeps when idle, so the first load can take ~30-50 s.
 
 ---
