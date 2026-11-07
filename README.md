@@ -6,7 +6,7 @@
 
 A career platform with a **transparent, deterministic 100-point ATS engine**, live job matching, an application tracker and optional AI coaching.
 
-[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Open_App-6366f1?style=for-the-badge)](https://resume-copilot-64eq.onrender.com/)
+[![Live Demo](https://img.shields.io/badge/_Live_Demo-Open_App-6366f1?style=for-the-badge)](https://resume-copilot-64eq.onrender.com/)
 &nbsp;
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-API-000000?logo=flask)
@@ -19,7 +19,7 @@ A career platform with a **transparent, deterministic 100-point ATS engine**, li
 
 <br>
 
-![Resume Copilot dashboard](docs/demo.png)
+![Resume Copilot dashboard](demo.png)
 
 </div>
 
