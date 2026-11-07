@@ -39,8 +39,14 @@ class Document:
         return [ln for ln in self.text.splitlines()]
 
 
+CID_RE = re.compile(r"\(cid:\d+\)")
+
+
 def _normalize(text: str) -> tuple[str, bool]:
-    pu = bool(PRIVATE_USE_RE.search(text))
+    # pdfplumber emits unmapped glyphs as "(cid:N)"; this is how many Word/Canva bullets arrive
+    cid = bool(CID_RE.search(text))
+    text = CID_RE.sub("\u2022", text)
+    pu = cid or bool(PRIVATE_USE_RE.search(text))
     text = PRIVATE_USE_RE.sub("\u2022", text)
     for a, b in (("\ufb01", "fi"), ("\ufb02", "fl"), ("\ufb00", "ff"), ("\u00a0", " "), ("\u200b", ""),
                  ("\u2019", "'"), ("\u2018", "'"), ("\u201c", '"'), ("\u201d", '"'), ("\t", "  ")):
