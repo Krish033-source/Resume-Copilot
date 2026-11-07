@@ -1,98 +1,96 @@
-# Resume Copilot v2
+# Resume Copilot
 
-Evidence-based ATS resume analysis + live jobs, internships, freelance gigs and research papers matched to your resume.
-Flask · PostgreSQL · Groq (optional) · vanilla JS Bento UI.
+**A career platform that scores your resume with a transparent, deterministic 100-point ATS engine, matches it to live jobs, and tracks every application.**
 
-## What's inside
+![Resume Copilot dashboard](docs/demo.png)
 
-| Area | Details |
+> Same resume → same score, every time. The LLM explains and rewrites; it **never** changes the score.
+
+## At a glance
+
+| | |
 |---|---|
-| **Auth** | PostgreSQL users, scrypt password hashes, httpOnly JWT cookies + CSRF double-submit, refresh tokens, rate limits, server-side password policy, change password, delete account |
-| **ATS engine** | Deterministic, explainable 100-point score across 12 dimensions with stage-aware weights (fresher / early career / experienced). Every finding carries the **evidence line** from your resume and a concrete fix |
-| **Real findings** | Internships (count, months), work experience (merged months, gaps), projects (stack/link/metric), certifications (vendor vs platform), open source (strong/moderate/weak), achievements (hackathons, ratings, ranks, papers), layout problems (columns, tables, text boxes, header/footer content, scanned PDFs, clickable links) |
-| **Impact metrics** | Only real metrics count (%, users/requests, latency, cost, F1...). Years, phone numbers, CGPA are ignored |
-| **JD match** | Paste a job description: required vs preferred skills, in-context vs listed-only, keywords, years of experience |
-| **Groq AI** | Recruiter-style review, bullet rewrites (verified against your text), JD tailoring, outreach, interview feedback. Model chain with automatic fallback. The AI **never changes** the ATS score |
-| **Opportunities** | Adzuna (key) is queried first and shown immediately; Remotive, Arbeitnow, Remote OK, Jobicy, The Muse load in a background thread and the page fills in by itself (polling). Cached in Postgres, deduped, atomically rate-limited. Pages never wait on slow providers |
-| **Smart outreach** | Paste a job description, upload/paste (Ctrl+V) a screenshot, or pick a listing. The app extracts role, company, skills, years and contact email, matches them to your resume, picks your best proof lines (internships and metrics first) and writes a cold email, LinkedIn note, cover letter or referral message. Works without AI (template); with Groq the screenshot is read by a vision model and `gpt-oss` writes the text from verified facts only. It never claims skills missing from your resume |
-| **Research** | arXiv + OpenAlex paper search with topics derived from your skills |
-| **Explore** | Deep links for Internshala, Unstop, LinkedIn, Naukri, Devpost, MLH, Upwork, GSoC, Outreachy ... (no scraping) |
-| **Dashboard** | Bento grid: ATS ring, trend, breakdown, role radar, pipeline funnel, weekly applications, market-demand skills, matches, roadmap, activity heatmap |
-| **Tracker** | Drag-and-drop kanban with status history that feeds the analytics |
+| ATS dimensions | **12**, weights sum to 100 (asserted in tests) |
+| Career stages | **3** (fresher / early / experienced) with different weights |
+| Role profiles | **14** (core / important / nice skills) |
+| Skill taxonomy | **178** skills, **248** aliases, **15** categories |
+| REST endpoints | **37** across 7 blueprints |
+| Job feeds | **5** free + Adzuna, DB-cached with per-source TTL (4-8 h) |
+| Tests | **34** (pytest) on SQLite + PostgreSQL in CI |
+| Upload limit | 8 MB, PDF / DOCX / TXT, magic-byte checked |
 
-## Quick start
+## Features
+
+- **Explainable ATS score:** every point comes with evidence (found / missing, with a fix). Caps for unreadable text, no email, no headings.
+- **JD matching:** `0.7 skills + 0.2 keywords + 0.1 experience fit`; skills labelled *listed / in context / missing*.
+- **Job match:** `0.55 skills + 0.25 role + 0.15 level + 0.05 recency`, best match first.
+- **AI review (optional, Groq):** model fallback chain; rewrites are verified against your resume text; prompt-injection guard. Works without a key (template outreach, STAR-based interview feedback).
+- **Tracker:** Kanban (saved → applied → OA → interview → offer / rejected) with status history.
+- **Analytics:** ATS trend, funnel, response rate, avg days to response, 12-week chart, 26-week heatmap, streak, market demand, skill roadmap.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    U[Browser: vanilla JS] -->|httpOnly JWT + CSRF| API[Flask API: 7 blueprints]
+    API --> P[Parser: pdfplumber / python-docx]
+    P --> A[ATS engine: 12 dimensions]
+    A --> DB[(PostgreSQL / JSONB)]
+    API --> M[Job matcher]
+    S[Remotive · Arbeitnow · Remote OK · Jobicy · The Muse · Adzuna] -->|TTL + atomic claim| DB
+    DB --> M
+    API -.optional.-> G[Groq LLM]
+```
+
+## ATS weights (by stage)
+
+Weights live in `app/services/ats.py` (`WEIGHTS`); each stage sums to 100. A fresher is weighted on projects, skills and education; an experienced candidate on experience and impact.
+
+## Engineering notes
+
+- **Auth:** httpOnly cookies, CSRF double-submit, werkzeug hashing, case-insensitive unique email index, rate limits.
+- **Security headers:** CSP + standard headers; frontend escapes all dynamic HTML.
+- **Source refresh:** an atomic `UPDATE` claims the refresh slot, so concurrent workers never double-fetch; one failing source never breaks the rest.
+- **Data:** Alembic migrations; JSONB on Postgres, JSON on SQLite; old jobs pruned after 45 days.
+- **CI:** GitHub Actions runs pytest on SQLite and PostgreSQL and checks migrations.
+
+## Project structure
+
+```
+app/
+  blueprints/   # 7 route groups (auth, resumes, opportunities, applications, analytics, tools, common)
+  services/     # ATS engine, resume parser, skills taxonomy, matching, AI, analytics
+  sources/      # job feed providers + cached refresh logic
+  static/ templates/   # frontend (vanilla JS)
+migrations/     # Alembic: versioned DB schema history; `flask db upgrade` builds all 7 tables
+tests/          # pytest suite: ATS scoring, resume extraction, API + auth, job sources, AI fallbacks
+  fixtures/     # sample fresher / experienced / weak resumes used by the tests
+```
+
+- **`migrations/`**: every schema change is a versioned script, so any database (local, CI, production) is created identically with `flask db upgrade`.
+- **`tests/`**: 34 tests cover scoring determinism, PDF/DOCX/TXT parsing, CSRF + cookie auth, per-user data isolation, job dedupe/TTL claim, and the no-API-key fallbacks.
+
+## Run locally
 
 ```bash
-cp .env.example .env            # set SECRET_KEY and DATABASE_URL
-python -m venv venv && . venv/bin/activate
-pip install -r requirements-dev.txt
-python -m flask --app wsgi db upgrade        # create tables in PostgreSQL
-python -m flask --app wsgi run               # http://127.0.0.1:5000
+git clone https://github.com/Krish033-source/resume-copilot && cd resume-copilot
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env        # set SECRET_KEY (32+ chars); GROQ_API_KEY is optional
+flask db upgrade && flask run
 ```
 
-Docker: `SECRET_KEY=$(python -c "import secrets;print(secrets.token_urlsafe(48))") docker compose up --build` then open http://localhost:8000.
+Docker: `docker compose up`. Tests: `pip install -r requirements-dev.txt && pytest -q`.
 
-Free Postgres options: Neon, Supabase, or Render Postgres (check Render's current free-tier expiry policy; Neon/Supabase are better for long-lived free use).
+## Limitations
 
-## Deploy on Render
+- In-memory rate limiter: use 1 worker, or set `RATELIMIT_STORAGE_URI` to Redis.
+- ATS is a heuristic, not any real employer's ATS.
+- `/api/opportunities` scores up to 500 cached jobs per request in Python; fine at this scale, would need pre-computation beyond it.
 
-1. Create a PostgreSQL database (Neon/Supabase/Render) and copy its URL.
-2. New Web Service from this repo (`render.yaml` is included). Set `DATABASE_URL`, optionally `GROQ_API_KEY`, `ADZUNA_*`, `CONTACT_EMAIL`.
-3. `start.sh` runs `flask db upgrade` on every boot, then gunicorn.
+## Roadmap
 
-Optional cron to keep listings fresh: `python -m flask --app wsgi refresh-jobs`.
+Redis rate limiting · pre-computed match scores · coverage report in CI.
 
-## Configuration
-
-See `.env.example`. Key variables: `SECRET_KEY` (required in production, 32+ chars), `DATABASE_URL`, `GROQ_API_KEY`, `GROQ_MODEL` (default `openai/gpt-oss-120b`, fallbacks `llama-3.3-70b-versatile,openai/gpt-oss-20b`), `GROQ_VISION_MODEL` (default `meta-llama/llama-4-scout-17b-16e-instruct`, used only to read screenshots), `ADZUNA_APP_ID/KEY`, `RATELIMIT_STORAGE_URI`.
-Groq changes its model lineup often; if a model is retired the app falls through the chain automatically, and you can change `GROQ_MODEL` without code changes.
-
-## How the ATS score works
-
-Weights (sum = 100) depend on the detected stage (based on merged work months, internships at half weight, and graduation year):
-
-| Dimension | Fresher | Early | Experienced |
-|---|---|---|---|
-| ATS readability (text layer, columns, tables, text boxes, header/footer, pages, length) | 10 | 10 | 10 |
-| Contact & links | 6 | 6 | 6 |
-| Structure & dates | 8 | 8 | 8 |
-| Experience & internships | 14 | 24 | 30 |
-| Projects | 14 | 8 | 4 |
-| Role keyword match (credit: 1.0 shown in a bullet, 0.6 listed only) | 16 | 16 | 16 |
-| Measurable impact (share of bullets with a real metric) | 8 | 10 | 12 |
-| Bullet writing (action verbs, weak phrases, length, specificity) | 8 | 8 | 8 |
-| Education | 6 | 4 | 2 |
-| Certifications (vendor 1.0, platform 0.7, unknown 0.5) | 4 | 3 | 2 |
-| Open source | 4 | 2 | 1 |
-| Achievements | 2 | 1 | 1 |
-
-Knock-out caps mirror real ATS behaviour: unreadable text caps at 35, no email at 60, no recognisable headings at 50.
-Role profiles (core / important / nice skills per role) live in `app/services/skills.py` and are easy to edit.
-
-## Job sources and terms
-
-- **Remotive** limits fetching (about 4 fetches/day, delayed data), requires attribution and forbids re-posting. The app caches in Postgres, refreshes at most every 8h and shows attribution in the UI.
-- **Remote OK** requires attribution/link-back. **Arbeitnow, Jobicy, The Muse** are public feeds. **Adzuna** needs a free key.
-- **Internshala, Unstop, Devpost, Upwork, Fiverr**: no public API that is generally available, so the app only builds search links (no scraping). Upwork/Fiverr APIs are partner-only.
-- Always re-read each provider's terms before launching commercially.
-
-## Tests
-
-```bash
-pytest -q                                                   # SQLite
-TEST_DATABASE_URL=postgresql+psycopg://user:pw@localhost/rc_test pytest -q   # PostgreSQL
-```
-34 tests cover ATS logic, real PDF/DOCX layout detection, auth + CSRF, isolation between users, upserts/dedupe, rate-limit claiming, source failure handling and the Groq client (mocked), the non-blocking source refresh, Adzuna-first loading, list speed with hundreds of jobs, JD analysis and the screenshot-to-email flow.
-
-## Not verifiable in the build sandbox
-
-External APIs (job boards, arXiv, OpenAlex, Groq) and CDN assets were not reachable from the build environment, so live responses are covered by mocks and defensive parsing; run `python -m flask --app wsgi refresh-jobs` once after deploying and check `/api/sources/status`.
-
-## Layout
-
-```
-app/                Flask package (blueprints/, services/, sources/, static/, templates/)
-migrations/         Alembic migrations (PostgreSQL JSONB, lower(email) unique index)
-tests/              pytest suite + fixture resumes
-start.sh            migrate + gunicorn (1 worker, 8 threads; see comments for scaling)
-```
+---
+Built by [Krishna Lal](https://krbtech.xyz)
