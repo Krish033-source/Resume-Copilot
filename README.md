@@ -2,7 +2,7 @@
 
 **A career platform that scores your resume with a transparent, deterministic 100-point ATS engine, matches it to live jobs, and tracks every application.**
 
-![Resume Copilot dashboard](docs/demo.png)
+![Resume Copilot dashboard](demo.png)
 
 > Same resume → same score, every time. The LLM explains and rewrites; it **never** changes the score.
 
