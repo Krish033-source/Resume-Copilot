@@ -19,7 +19,7 @@ A career platform with a **transparent, deterministic 100-point ATS engine**, li
 
 <br>
 
-![Resume Copilot dashboard](demo.png)
+![Resume Copilot dashboard](dashboard.png)
 
 </div>
 
