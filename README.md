@@ -15,7 +15,7 @@ A career platform with a **transparent, deterministic 100-point ATS engine**, li
 ![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF?logo=githubactions&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-34-brightgreen)
 
-**[ Try it live NOW](https://resume-copilot-64eq.onrender.com/)** · [Features](#-features) · [How scoring works](#-how-the-ats-score-works) · [Architecture](#-architecture) · [API](#-api-reference) · [Run locally](#-run-locally)
+**[ Try it live NOW](https://resume-copilot-64eq.onrender.com/)** · [Features](#-features) · [How scoring works](#-how-the-ats-score-works) · [Architecture](#-architecture) · [API](#-api-reference) · [Run locally](#-run-locally) · [Why it's different](#-why-its-different) · [Use case](#-real-use-case) · [Performance](#-performance)
 
 <br>
 
@@ -32,7 +32,8 @@ A career platform with a **transparent, deterministic 100-point ATS engine**, li
 | | | | |
 |:--:|:--:|:--:|:--:|
 | **12** ATS dimensions | **3** career stages | **14** role profiles | **178** skills / 248 aliases |
-| **37** endpoints | **6** job feeds | **34** tests | **8 MB** upload limit |
+| **38** endpoints | **6** job feeds | **34** tests | **8 MB** upload limit |
+| **~100 ms** PDF extract + parse + score | **~11 ms** ranked job feed (450 cached jobs) | **8** data sources (6 job feeds + arXiv + OpenAlex) | **0** API keys needed for the core ATS engine |
 
 ---
 
@@ -84,6 +85,20 @@ Recruiter-style review, JD tailoring, outreach messages (4 kinds) and interview 
 
 </td>
 </tr>
+<tr>
+<td valign="top">
+
+### Smart outreach from a job post or screenshot
+Paste a job description, drop or **Ctrl+V a screenshot**, or pick a saved listing. The app extracts role, company, required skills, years asked and the recruiter's email, matches them to your resume, quotes your **best proof lines** (internships and metrics first) and writes a cold email, LinkedIn note, cover letter or referral in 3 tones. It **never claims a skill missing from your resume** and flags it as a gap instead.
+
+</td>
+<td valign="top">
+
+### Never-blocking live feed
+**Adzuna results are fetched first and shown immediately**; the other 5 feeds refresh in one background thread while the page updates itself (polling every 5 s with a "loading more" bar). Slow or failing providers can no longer freeze the dashboard or the opportunities page.
+
+</td>
+</tr>
 </table>
 
 <details>
@@ -96,8 +111,47 @@ Recruiter-style review, JD tailoring, outreach messages (4 kinds) and interview 
 - **Research feed:** latest papers from arXiv and OpenAlex for research-track roles.
 - **Version history:** every upload is scored; the last 20 are kept so you can see your trend.
 - **Download / re-score:** re-score any saved resume against a different target role.
+- **Screenshot reading:** a vision model (Llama 4 Scout, with Maverick as fallback) transcribes a job screenshot, then `gpt-oss` writes the message, because `gpt-oss` is text-only. The image is resized to max 1600 px in the browser before upload.
+- **Regenerate with edits:** correct the detected role or company and regenerate; the extracted text is reused, so a screenshot is not re-read.
+- **Open in mail app:** when the posting contains a recruiter email, one click opens a pre-filled `mailto:` draft.
+- **Deep links for platforms without a public API:** Internshala, Unstop, Devpost, Upwork, GSoC, Outreachy (opened as pre-filled searches, never scraped).
 
 </details>
+
+---
+
+## 💡 Why it's different
+
+| | What most resume tools do | What Resume Copilot does |
+|---|---|---|
+| **Explainability** | One opaque number | 12-part breakdown; each finding quotes the **original resume line**, the points at stake and a fix |
+| **Fair to career stage** | Same rubric for everyone | Weights adapt: a fresher is judged on projects, internships, open source and certifications (14 + 14 + 4 + 4 pts); an experienced engineer on work history (30 pts) and impact (12 pts) |
+| **Real impact metrics** | Counts any number as a "metric" | Years, phone numbers, CGPA and version numbers are ignored; only real outcomes count |
+| **Keyword honesty** | Rewards keyword stuffing | Skill used inside a bullet = **1.0** credit, listed only = **0.6**; stuffed skill lists are flagged |
+| **AI you can trust** | The LLM decides the score | Score is **deterministic and reproducible**; AI only adds review and rewrites, each checked against your resume text |
+| **Honest outreach** | Generic templates | Quotes your real proof lines and **never claims a missing skill** |
+| **AI optional** | Needs an API key | Full ATS analysis, JD match and template outreach work with **no key** |
+| **Respects providers** | Scrapes job boards | Public APIs only, cached in PostgreSQL, rate-limited, attribution shown; no scraping |
+
+---
+
+## 🎯 Real use case
+
+> Sample data from `tests/fixtures` (synthetic resumes, not real people).
+
+**Aarav, a final-year B.Tech student, wants a backend internship at a fintech.**
+
+1. He uploads his PDF. The engine detects **2 internships (6 months)**, **2 projects**, **3 certifications** (1 vendor-grade), a **strong open-source signal** (merged PRs) and a **Smart India Hackathon win**, and scores him **89/100 for Backend Developer** (86 for ML / AI Engineer, same resume, different role keywords).
+2. A deliberately weak sample (objective statement, no experience, stuffed skills list, informal email) scores **35/100** with **22 findings** (1 critical, 13 warnings), each with a concrete fix.
+3. He pastes a Razorpay "Backend Engineer Intern" posting, or a **screenshot** of it. The app extracts the role, company, required skills, years asked and the recruiter's email.
+4. It flags **Kubernetes as a gap** (not on his resume) and picks his strongest matching proof: *"Built 6 REST API endpoints in FastAPI serving 12,000 daily requests with p95 latency under 120 ms."*
+5. It writes a cold email around that proof, without claiming Kubernetes, and one click opens it in his mail app.
+
+| Sample resume | Target role | Stage detected | Score | Findings |
+|---|---|:--:|:--:|:--:|
+| Weak fresher | Software Engineer | Fresher | **35** | 22 (1 critical, 13 warnings) |
+| Strong fresher | Backend Developer | Fresher | **89** | 16 (0 critical, 6 warnings) |
+| Experienced (6 yrs) | Backend Developer | Experienced | **85** | 13 (0 critical, 2 warnings) |
 
 ---
 
@@ -136,6 +190,17 @@ They **ignore** years, phone numbers, CGPA and version numbers (`python 3.11`), 
 - Bullet rewrites are **verified against your resume text**, so the model cannot invent facts.
 - A prompt-injection guard is applied to uploaded text and job descriptions.
 - Model fallback chain (default `openai/gpt-oss-120b` → `llama-3.3-70b-versatile` → `openai/gpt-oss-20b`) with retries.
+
+</details>
+
+<details>
+<summary><b>🔎 What the parser detects (real findings)</b></summary>
+
+- **Layout on real files:** multi-column PDFs, tables, text boxes, content hidden in headers/footers, scanned (image-only) PDFs, and whether LinkedIn/GitHub links are clickable.
+- **Experience:** months worked (overlaps merged), employment gaps over 6 months, internship vs full-time vs freelance, reverse-chronological order.
+- **Projects:** tech stack, link, detail lines and a measurable result for each.
+- **Credentials:** certifications graded by issuer (vendor 1.0, platform 0.7, unknown 0.5), open source graded strong / mentioned / link only, and achievements (hackathons, coding ratings, ranks, scholarships, papers, leadership).
+- **Writing:** action-verb starts, weak phrases ("responsible for", "worked on"), first-person pronouns, bullet length and repeated verbs.
 
 </details>
 
@@ -191,6 +256,40 @@ erDiagram
 
 </details>
 
+<details>
+<summary><b>✉️ Smart outreach flow</b></summary>
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant O as /api/outreach/analyze
+    participant V as Vision model
+    participant J as JD analyzer
+    participant W as gpt-oss writer
+    B->>B: resize screenshot (max 1600 px JPEG)
+    B->>O: job text, screenshot or listing id
+    O->>V: image (only for screenshots)
+    V-->>O: transcribed posting
+    O->>J: role, company, skills, years, contact email
+    J->>J: match skills, pick proof lines from resume
+    O->>W: verified facts only (template if no AI key)
+    W-->>B: subject + body, with gaps flagged
+```
+
+</details>
+
+<details>
+<summary><b>🧠 Design decisions worth noting</b></summary>
+
+- **Non-blocking by design.** Pages never wait for upstream providers. Adzuna is queried first with a 7 s cap; the other feeds refresh in a single background thread guarded by a lock, and the UI polls until the data arrives.
+- **Cheap ranking.** Job skills are extracted once at ingest and stored; ranking reuses them, so a request does no regex work. Only the columns needed for the list are loaded and the description is cut to a 400-character snippet in SQL.
+- **Deterministic core, optional AI.** The LLM never changes the score. Resume, job text and screenshots are treated as untrusted data inside delimiters, and AI output is validated before it is shown.
+- **Two model chains.** Text writing uses `openai/gpt-oss-120b` with fallbacks; screenshots use a separate vision chain, because `gpt-oss` is text-only. Both are configurable by environment variable.
+- **Portable data layer.** PostgreSQL JSONB in production, SQLite for local development; the same test suite runs on both.
+- **Late-DOM safety on the frontend.** Rendering helpers tolerate pages that changed while a request was in flight, and every API call has a timeout so no screen can stay on "loading" forever.
+
+</details>
+
 ---
 
 ## 🌐 Job sources
@@ -203,8 +302,24 @@ erDiagram
 | Remotive | 8 h |
 | The Muse | 8 h |
 | Adzuna (needs key) | 30 min per query |
+| arXiv, OpenAlex (research papers) | 1 h (in memory) |
 
 Jobs are cached in the DB. A refresh slot is taken with an **atomic `UPDATE`**, so concurrent workers never double-fetch. One failing source never breaks the others, and jobs older than 45 days are pruned.
+
+Remotive limits fetching and requires attribution, so its data is cached, refreshed at most every 8 h and credited in the UI. Platforms without a public API (Internshala, Unstop, Devpost, Upwork) are only **deep-linked**, never scraped. Always re-read each provider's terms before commercial use.
+
+---
+
+## ⚡ Performance
+
+Measured locally: in-process, PostgreSQL 16, 450 cached listings, 15 runs each, network time excluded.
+
+| Operation | Median | p95 |
+|---|:--:|:--:|
+| Extract + parse + score a PDF resume | ~100 ms | 159 ms |
+| `GET /api/opportunities` (rank 300 candidates for your resume) | ~11 ms | 12 ms |
+| `GET /api/opportunities?fast=1` (dashboard widget) | ~10 ms | 11 ms |
+| `GET /api/analytics/overview` | ~9 ms | 18 ms |
 
 ---
 
@@ -219,6 +334,10 @@ Jobs are cached in the DB. A refresh slot is taken with an **atomic `UPDATE`**, 
 | Browser | CSP + security headers; dynamic HTML escaped on the frontend |
 | Abuse | Per-route rate limits (Flask-Limiter) |
 | Config | App refuses to start in production with a `SECRET_KEY` under 32 chars |
+| Screenshots | PNG / JPG / WEBP only, **magic-byte** check, 3 MB cap, resized in the browser first |
+| Rate limits (examples) | login 10/min, register 8/h, outreach 30/h, AI review 15/h |
+| Untrusted text | Resume, job text and screenshots are passed to the LLM as delimited data, with injection guard; outputs are validated |
+| Accounts | Password policy enforced server-side; account deletion removes all user data |
 
 ---
 
@@ -234,8 +353,13 @@ Jobs are cached in the DB. A refresh slot is taken with an **atomic `UPDATE`**, 
 | **Opportunities** | `GET /api/opportunities` · `GET /opportunities/<id>` · `POST/DELETE /opportunities/<id>/save` · `GET /api/saved` · `GET /api/sources/status` · `GET /api/explore` · `GET /api/research` · `GET /research/topics` |
 | **Tracker** | `GET/POST /api/applications` · `PATCH/DELETE /applications/<id>` |
 | **Analytics** | `GET /api/analytics/overview` · `GET /api/skill-gap` |
-| **Tools** | `GET /api/meta` · `POST /api/outreach` · `GET /api/interview/questions` · `POST /api/interview/evaluate` |
+| **Tools** | `GET /api/meta` · `POST /api/outreach` · `POST /api/outreach/analyze` · `GET /api/interview/questions` · `POST /api/interview/evaluate` |
 | **Ops** | `GET /healthz` |
+
+**Extra notes**
+
+- `GET /api/opportunities` query params: `kind` (job / internship / freelance), `q`, `location`, `remote=1`, `source`, `sort` (match / recent), `page`, `per_page`, `fast=1` (database only, used by the dashboard). The response includes `sync: "refreshing" | "fresh"` so the UI knows whether to keep polling.
+- `POST /api/outreach/analyze` accepts `jd_text`, an `image` (multipart), or a `job_id`, plus `kind` (cold_email / linkedin_dm / cover_letter / referral), `tone` (concise / friendly / formal) and optional `role` / `company` overrides. It returns the detected job, resume fit, proof lines used, the message and notes about gaps.
 
 </details>
 
@@ -251,6 +375,7 @@ Jobs are cached in the DB. A refresh slot is taken with an **atomic `UPDATE`**, 
 | `test_extract.py` | PDF/DOCX/TXT parsing, links, layout checks |
 | `test_api.py` | register/login/logout, cookie flags, CSRF, upload + magic bytes, user isolation, tracker, analytics, job dedupe, TTL claim, failure containment |
 | `test_ai.py` | AI helpers and fallbacks with no API key |
+| `test_outreach_and_speed.py` | JD analysis, resume-grounded messages that never claim missing skills, screenshot to email flow (vision then gpt-oss, mocked), image validation, AI failure fallback, non-blocking source refresh, Adzuna-first loading with caching, list speed with hundreds of jobs |
 
 ```bash
 pip install -r requirements-dev.txt && pytest -q
@@ -263,7 +388,7 @@ pip install -r requirements-dev.txt && pytest -q
 ```
 app/
 ├── blueprints/     # route groups: auth, resumes, opportunities, applications, analytics, tools
-├── services/       # ats.py · resume_parser.py · skills.py · matching.py · ai.py · analytics.py
+├── services/       # ats.py · resume_parser.py · skills.py · matching.py · ai.py · analytics.py · jobtext.py
 ├── sources/        # job feed providers, registry (TTL + atomic claim), research, explore
 ├── static/js/      # frontend modules (dashboard, resume, tracker, tools…)
 └── templates/
@@ -278,7 +403,7 @@ Dockerfile · docker-compose.yml · render.yaml · start.sh
 ## Run locally
 
 ```bash
-git clone https://github.com/Krish033-source/resume-copilot && cd resume-copilot
+git clone https://github.com/Krish033-source/Resume-Copilot && cd Resume-Copilot
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env          # set SECRET_KEY (32+ chars); GROQ_API_KEY is optional
@@ -301,6 +426,11 @@ flask db upgrade && flask run
 | `AUTO_REFRESH_SOURCES` | Refresh job feeds in background | `1` |
 | `RATELIMIT_STORAGE_URI` | Limiter backend (Redis for multi-worker) | `memory://` |
 | `CORS_ORIGINS` | Allowed origins | empty |
+| `GROQ_FALLBACK_MODELS` | Text models tried if the primary fails | `llama-3.3-70b-versatile,openai/gpt-oss-20b` |
+| `GROQ_VISION_MODEL` | Vision model that reads job screenshots (`gpt-oss` is text-only) | `meta-llama/llama-4-scout-17b-16e-instruct` |
+| `GROQ_VISION_FALLBACKS` | Vision models tried if the first fails | `meta-llama/llama-4-maverick-17b-128e-instruct` |
+| `ADZUNA_COUNTRY` | Adzuna country code | `in` |
+| `CONTACT_EMAIL` | Sent in the User-Agent and OpenAlex polite pool | empty |
 
 </details>
 
@@ -310,7 +440,12 @@ flask db upgrade && flask run
 
 - The ATS score is an **explainable heuristic**, not any employer's real ATS.
 - The in-memory rate limiter needs a **single worker**; use Redis (`RATELIMIT_STORAGE_URI`) to scale out.
-- `/api/opportunities` scores up to 500 cached jobs per request. Fine at this scale, but would need pre-computed scores beyond it.
+- `/api/opportunities` scores up to 300 cached jobs per request. Fine at this scale, but would need pre-computed scores beyond it.
+- Scanned (image-only) PDFs are detected and flagged, but not OCR'd yet.
+- Email verification and password reset are not implemented yet.
+- The resume parser is heuristic and tuned for common English layouts; unusual templates may need manual review.
+- Screenshot reading and the AI writer depend on Groq model availability; model names are configurable because they change often.
+- Live job and paper APIs are covered by mocks and defensive parsing in tests; always check `/api/sources/status` after deploying.
 
 ## 🗺️ Roadmap
 
@@ -318,6 +453,10 @@ flask db upgrade && flask run
 - [ ] Pre-computed job match scores
 - [ ] Test coverage report in CI
 - [ ] Resume diff view between versions
+- [ ] OCR fallback for scanned PDFs
+- [ ] Email verification and password reset
+- [ ] Browser end-to-end tests in CI
+- [ ] Saved-search alerts for new matching listings
 
 ---
 
